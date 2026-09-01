@@ -3,7 +3,7 @@ using MakiePotts
 
 CairoMakie.activate!(type = "png")
 
-function audit_frame()
+function reference_frame()
     dims = (42, 28)
     owners = fill(RenderOwner(MediumSite, 1), dims)
     cells = RenderCellMetadata[]
@@ -34,7 +34,7 @@ function audit_frame()
     return frame, key
 end
 
-frame, signal_key = audit_frame()
+frame, signal_key = reference_frame()
 figure = Figure(size = (1240, 480), backgroundcolor = :white)
 
 type_axis = Axis(figure[1, 1];

@@ -37,7 +37,7 @@ function canonical_frame(mcs::Integer)
     geometry = RenderGeometry(dims;
         spacing = (0.5, 0.75), origin = (-2.0, 1.0))
     provenance = RenderProvenance(
-        :visual_audit_b, typeof(owners), :host, RenderRequest())
+        :visual_composition_preview, typeof(owners), :host, RenderRequest())
     return PottsRenderFrame(mcs, owners, cells; geometry, provenance)
 end
 
