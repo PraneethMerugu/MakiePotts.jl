@@ -36,12 +36,13 @@ function _atomic_record(write_recording::Function, filename::AbstractString)
     extension = splitext(destination)[2]
     isempty(extension) && throw(ArgumentError(
         "recording filename must include an output extension"))
-    return mktempdir() do directory
+    parent = dirname(abspath(destination))
+    return mktempdir(parent; prefix = ".makiepotts-recording-") do directory
         temporary = joinpath(directory, "makiepotts-recording$extension")
         write_recording(temporary)
         isfile(temporary) && filesize(temporary) > 0 ||
             error("Makie recording completed without producing a nonempty artifact")
-        mv(temporary, destination; force = true)
+        Base.Filesystem.rename(temporary, destination)
         destination
     end
 end

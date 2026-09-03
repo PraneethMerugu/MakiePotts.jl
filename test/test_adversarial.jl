@@ -1,3 +1,28 @@
+function _saved_state_frame_oracle(state, request)
+    active = Set(Int32(id) for id in eachindex(state.volumes) if state.volumes[id] > 0)
+    owners = map(state.ownership) do id
+        id == 0 ? RenderOwner(MediumSite, 1) : begin
+            id in active || error("oracle encountered an inactive finite owner")
+            RenderOwner(CellSite, id)
+        end
+    end
+    metadata = [
+        RenderCellMetadata(
+            CellIdentity(id, state.cell_generations[id]), state.cell_kinds[id])
+        for id in eachindex(state.volumes) if state.volumes[id] > 0
+    ]
+    if request.extent isa FullDomain
+        projected = owners
+        geometry = RenderGeometry(size(owners))
+    else
+        extent = request.extent
+        projected = copy(selectdim(owners, extent.axis, extent.index))
+        retained = Tuple(filter(!=(extent.axis), ntuple(identity, ndims(owners))))
+        geometry = RenderGeometry(size(projected); source_axes = retained)
+    end
+    return (; mcs = Int(state.mcs), owners = projected, metadata, geometry)
+end
+
 @testset "adversarial geometry and ownership semantics" begin
     one_geometry = RenderGeometry((1, 1);
         spacing = (0.25, 2.5), origin = (-3.0, 4.0))
@@ -43,6 +68,17 @@ end
         for index in (1, source_size[axis])
             request = RenderRequest(extent = OrthogonalSlice(axis, index))
             frame = renderframe(fixture.state, request)
+            oracle = _saved_state_frame_oracle(fixture.state, request)
+            @test frame_mcs(frame) == oracle.mcs
+            @test frame_geometry(frame) == oracle.geometry
+            @test [owner_at(frame, site) for site in CartesianIndices(oracle.owners)] ==
+                  [oracle.owners[site] for site in CartesianIndices(oracle.owners)]
+            @test all(item -> cell_metadata(frame, item.identity) == item,
+                oracle.metadata)
+            provenance = frame_provenance(frame)
+            @test provenance.source === :saved_state
+            @test provenance.residency === :host
+            @test provenance.request == request
             @test frame_size(frame) == expected_size
             @test frame_geometry(frame).source_axes == retained
             @test frame_geometry(frame).spacing == expected_spacing
@@ -167,6 +203,15 @@ end
     @test occursin("RenderRequest", missing_message)
 
     fixture_2d = render_fixture()
+    channel_request = RenderRequest(channels = (CellPropertyRequest(:signal),))
+    channel_error = try
+        renderframe(fixture_2d.state, channel_request)
+        nothing
+    catch error
+        error
+    end
+    @test channel_error isa MakiePotts.RenderMaterializationError
+    @test occursin("explicitly materialized", sprint(showerror, channel_error))
     @test_throws ArgumentError renderframe(
         fixture_2d.state,
         RenderRequest(extent = OrthogonalSlice(1, 1)))
@@ -182,6 +227,48 @@ end
     @test_throws MakiePotts.InvalidRenderFrameError PottsRenderFrame(-1,
         fill(RenderOwner(MediumSite, 1), 1, 1),
         RenderCellMetadata[])
+end
+
+@testset "frame construction owns mutable semantic inputs" begin
+    identity = CellIdentity(1, 7)
+    metadata = RenderCellMetadata(identity, 3; label = "Original")
+    owners = fill(RenderOwner(CellSite, 1), 2, 2)
+    cells = [metadata]
+    site_values = [1.0 2.0; 3.0 4.0]
+    cell_values = Dict(identity => 5.0)
+    medium_values = Dict(UInt32(1) => 6.0)
+    site_key = SiteChannelKey(:site, Float64)
+    cell_key = CellChannelKey(:cell, Float64)
+    medium_key = MediumChannelKey(:medium, Float64)
+    frame = PottsRenderFrame(4, owners, cells; channels = (
+        RenderChannel(site_key, site_values),
+        RenderChannel(cell_key, cell_values),
+        RenderChannel(medium_key, medium_values),
+    ))
+
+    fill!(owners, RenderOwner(MediumSite, 1))
+    empty!(cells)
+    fill!(site_values, 99.0)
+    cell_values[identity] = 99.0
+    medium_values[UInt32(1)] = 99.0
+
+    @test owner_at(frame, CartesianIndex(1, 1)) == RenderOwner(CellSite, 1)
+    @test cell_metadata(frame, identity) == metadata
+    @test channel(frame, site_key).values == [1.0 2.0; 3.0 4.0]
+    @test channel(frame, cell_key).values[identity] == 5.0
+    @test channel(frame, medium_key).values[UInt32(1)] == 6.0
+
+    fixture = render_fixture()
+    ownership_before = copy(fixture.state.ownership)
+    kinds_before = copy(fixture.state.cell_kinds)
+    generations_before = copy(fixture.state.cell_generations)
+    volumes_before = copy(fixture.state.volumes)
+    rendered = renderframe(fixture.state)
+    @test frame_mcs(rendered) == fixture.state.mcs
+    @test fixture.state.ownership == ownership_before
+    @test fixture.state.cell_kinds == kinds_before
+    @test fixture.state.cell_generations == generations_before
+    @test fixture.state.volumes == volumes_before
 end
 
 @testset "rapid reactive replacement and recording guards" begin
@@ -211,9 +298,11 @@ end
         tempname() * ".gif", PottsRenderFrame{2}[])
 
     singleton_output = tempname() * ".gif"
+    write(singleton_output, "previous artifact")
     @test record_potts(singleton_output, [first(frames)];
         framerate = 1, figure = (; size = (120, 100))) == singleton_output
     @test filesize(singleton_output) > 1_000
+    @test read(singleton_output, 3) == UInt8[0x47, 0x49, 0x46]
 
     shifted = PottsRenderFrame(21,
         fill(RenderOwner(MediumSite, 1), 3, 2),

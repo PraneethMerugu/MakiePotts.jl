@@ -4,9 +4,9 @@ on: [push, pull_request, workflow_dispatch]
 
 env:
   JULIA_VERSION: '1.12.6'
-  LOCALMATH_REF: 'v0.2.0-rc1'
-  COREPOTTS_REF: 'v0.2.0-rc1'
-  POTTS_REF: 'v0.3.0-rc1'
+  LOCALMATH_REF: '4df26f61cc802f255c6bf7b863b5a5e452ac5690'
+  COREPOTTS_REF: 'b3ff80b60706eb0354049ef73e05ddafd96c5bf0'
+  POTTS_REF: '9a5f82b7f1c248b3d284e4384cea92afd13afd89'
 
 jobs:
   test:
