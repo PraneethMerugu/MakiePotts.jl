@@ -78,11 +78,11 @@ Resolve any affirmative answer as part of the same change.
 ## Test
 
 During development, start with the smallest self-contained test file that owns
-the changed behavior. For example, a focused root check can load the shared
-setup explicitly:
+the changed behavior. The package tests use CairoMakie and include frame,
+encoding, recording, downstream-protocol, allocation, and adversarial coverage:
 
 ```sh
-julia --project=. --startup-file=no -e 'include("test/setup.jl"); include("test/test_public_api.jl")'
+julia --project=. --startup-file=no -e 'using Pkg; Pkg.test()'
 ```
 
 Focused commands shorten the edit loop; they are not a second test inventory
@@ -105,8 +105,19 @@ Build documentation with:
 julia --project=docs docs/make.jl
 ```
 
-The package suite includes Aqua and visual-reference coverage. Rendering
-backend tests live in `test/backends`.
+The package suite includes Aqua and Cairo-based recipe coverage. The separate
+rendering environments exercise CairoMakie, GLMakie, WGLMakie, clean-install
+rendering, and tolerant visual regression. In a sibling checkout, develop the
+audited LocalMath, CorePotts, Potts, and MakiePotts repositories into that
+environment before running these commands:
+
+```sh
+julia --project=test/backends --startup-file=no test/backends/cairo.jl
+julia --project=test/backends --startup-file=no test/backends/wgl.jl
+xvfb-run -a julia --project=test/backends --startup-file=no test/backends/gl.jl
+julia --project=test/backends --startup-file=no test/visual_regression.jl
+julia --project=test/backends --startup-file=no test/clean_install_smoke.jl
+```
 
 ## Format Julia changes
 
@@ -134,30 +145,16 @@ julia --project=docs -e 'using Pkg; Pkg.instantiate()'
 julia --project=docs docs/make.jl
 ```
 
-The manual executes bounded serial Wortel and Merks integration programs. The
-separate Makie package and backend suites exercise rendering; the published-
-model documentation does not claim to render figures or reproduce the papers.
+The manual executes its own bounded examples and API references. Backend and
+visual-reference behavior remains owned by the package's separate rendering
+tests rather than by documentation prose.
 
 ## Continuous integration
 
-Pull requests target the four package suites, independently runnable
-integration families, applicable platform installation smokes, and the active
-documentation build. Real-GPU hardware tests are manual commands when suitable
-hardware is available; the hosted workflow does not currently provide Metal
-hardware. Benchmarks remain diagnostic and are run when their measured path
-changes.
-
-Run real-Metal semantic tests independently from performance measurements:
-
-```sh
-julia --project=benchmark/backends/metal --startup-file=no benchmark/backends/metal/runtests.jl
-```
-
-The runner includes the active semantic, parity, lifecycle, native-component,
-and extension-load witnesses; performance campaigns remain separate. Use the repository Julia version for these commands. The root `.julia-version`,
-root manifest, and Metal manifest all select Julia 1.12.6; do not invoke the
-Metal environment through a separate Julia release channel.
-
-Current specifications and decisions live under `spec/`. Historical interviews and evidence under
-`design/audits/`, and retired qualification scripts under `scripts/archive/`, document earlier
-repository states but are not active development gates.
+Pull requests run the standalone package suite, Cairo/GL/WGL rendering smokes,
+clean-install rendering, visual regression, the native recipe example, and the
+strict documentation build on Julia 1.12.6. The workflow checks out immutable
+audited LocalMath, CorePotts, and Potts revisions and develops them only in CI
+setup; production projects contain no sibling paths. MakiePotts has no device
+execution path or independent GPU capability claim. Benchmarks remain
+diagnostic and are run when their measured rendering path changes.

@@ -10,7 +10,8 @@ MakiePotts v0.3 turns explicit Potts observations into native Makie recipes.
 using MakiePotts
 using CairoMakie
 
-frame = renderframe(state, problem)
+owners = fill(RenderOwner(MediumSite, 1), 3, 2)
+frame = PottsRenderFrame(0, owners, RenderCellMetadata[])
 fig, axis, plot = plot(frame; boundaries = true)
 potts_legend(fig[1, 2], plot)
 ```
@@ -25,10 +26,11 @@ The stable API centers on:
   `Colorbar`, `save`, and `record`.
 
 `renderframe` is deliberately explicit. It never transfers backend state or
-reconstructs an observation that was not retained. Use
-`CorePotts.HostSnapshotPolicy()` for complete post-hoc frames, or retain
-`Potts.LatticeOwnership()` for a bounded visualization-neutral
-observation.
+reconstructs an observation that was not retained. Native
+`PottsSavedState` frames contain ownership and cell metadata. Construct a
+`PottsRenderFrame` with explicit `RenderChannel` values when additional site,
+cell, or medium data has been retained by the simulation. A nonempty channel
+request against a plain saved state is rejected rather than guessed.
 
 `PottsVolume`, `PottsExplorer`, and `RerunController` are experimental. The
 frame, request, channel, encoding, 2D recipe, boundary, inspection, and limited

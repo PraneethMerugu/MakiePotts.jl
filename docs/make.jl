@@ -10,5 +10,8 @@ makedocs(
     pagesonly = true,
     checkdocs = :exports,
     remotes = nothing,
+    format = Documenter.HTML(
+        repolink = "https://github.com/PraneethMerugu/MakiePotts.jl",
+    ),
     pages = ["Home" => "index.md", "API" => "api/makiepotts.md"],
 )

@@ -1,5 +1,14 @@
 using .DownstreamFixture
 
+struct ThrowingFrame <: AbstractPottsRenderFrame{2} end
+MakiePotts.frame_mcs(::ThrowingFrame) = 0
+MakiePotts.frame_size(::ThrowingFrame) = (2, 2)
+MakiePotts.frame_geometry(::ThrowingFrame) = RenderGeometry((2, 2))
+MakiePotts.frame_provenance(::ThrowingFrame) =
+    RenderProvenance(:throwing_fixture, ThrowingFrame, :host, RenderRequest())
+MakiePotts.owner_at(::ThrowingFrame, _) = error("broken owner accessor")
+MakiePotts.available_channels(::ThrowingFrame) = ()
+
 @testset "downstream protocol conformance and Makie journey" begin
     foreign = DownstreamFixture.columnar_frame()
     replacement = DownstreamFixture.columnar_frame(1)
@@ -63,4 +72,14 @@ using .DownstreamFixture
     @test Makie.boundingbox(plot) == Makie.Rect3d(
         Makie.Point3d(0.5, 1.0, 0), Makie.Vec3d(3.0, 3.75, 0))
 
+end
+
+@testset "malformed downstream frames reject before rendering" begin
+    broken = ThrowingFrame()
+    report = render_frame_conformance(broken)
+    @test !Base.isvalid(report)
+    @test !isempty(report.issues)
+    @test_throws MakiePotts.InvalidRenderFrameError assert_render_frame_conformance(broken)
+    @test_throws MakiePotts.InvalidRenderFrameError Makie.plot(broken)
+    @test_throws MakiePotts.InvalidRenderFrameError MakiePotts.pottsboundaries(broken)
 end

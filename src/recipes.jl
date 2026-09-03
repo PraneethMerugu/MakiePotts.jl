@@ -89,7 +89,8 @@ Makie.@recipe(PottsBoundaries, frame) do scene
 end
 
 function Makie.plot!(plot::PottsBoundaries)
-    segments = Makie.lift(_boundary_segments, plot.frame)
+    validated_frame = Makie.lift(assert_render_frame_conformance, plot.frame)
+    segments = Makie.lift(_boundary_segments, validated_frame)
     Makie.linesegments!(plot, segments;
         color = plot.color, linewidth = plot.linewidth,
         linestyle = plot.linestyle, visible = plot.visible,
@@ -126,11 +127,12 @@ Makie.@recipe(PottsPlot, frame) do scene
 end
 
 function Makie.plot!(plot::PottsPlot)
-    encoded = Makie.lift(encode, plot.frame, plot.encoding)
-    coordinates = Makie.lift(_image_extents ∘ frame_geometry, plot.frame)
+    validated_frame = Makie.lift(assert_render_frame_conformance, plot.frame)
+    encoded = Makie.lift(encode, validated_frame, plot.encoding)
+    coordinates = Makie.lift(_image_extents ∘ frame_geometry, validated_frame)
     image_xs = Makie.lift(first, coordinates)
     image_ys = Makie.lift(last, coordinates)
-    edges = Makie.lift(_heatmap_edges ∘ frame_geometry, plot.frame)
+    edges = Makie.lift(_heatmap_edges ∘ frame_geometry, validated_frame)
     heatmap_xs = Makie.lift(first, edges)
     heatmap_ys = Makie.lift(last, edges)
     values = Makie.lift(item -> item.values, encoded)
@@ -138,7 +140,8 @@ function Makie.plot!(plot::PottsPlot)
         _resolved_colormap, encoded, plot.colormap,
         plot.category_palette, plot.medium_color)
     colorrange = Makie.lift(_plot_colorrange, encoded, plot.colorrange)
-    labeler = Makie.lift(plot.inspector_label, plot.frame, plot.encoding) do custom, frame, enc
+    labeler = Makie.lift(
+            plot.inspector_label, validated_frame, plot.encoding) do custom, frame, enc
         custom === Makie.automatic ?
         ((child, index, position) -> inspection_label(frame, enc, index)) : custom
     end
@@ -151,12 +154,12 @@ function Makie.plot!(plot::PottsPlot)
         inspectable = plot.inspectable, inspector_label = labeler)
 
     semantic_overlay = Makie.lift(
-        _semantic_overlay, plot.frame, plot.encoding,
+        _semantic_overlay, validated_frame, plot.encoding,
         plot.medium_color, plot.obstacle_color)
     Makie.image!(plot, image_xs, image_ys, semantic_overlay;
         interpolate = false, visible = plot.visible, inspectable = false)
 
-    pottsboundaries!(plot, plot.frame;
+    pottsboundaries!(plot, validated_frame;
         color = plot.boundary_color, linewidth = plot.boundary_width,
         visible = plot.boundaries, inspectable = false)
     return plot
@@ -247,7 +250,8 @@ Makie.@recipe(PottsVolume, frame) do scene
 end
 
 function Makie.plot!(plot::PottsVolume)
-    encoded = Makie.lift(encode, plot.frame, plot.encoding)
+    validated_frame = Makie.lift(assert_render_frame_conformance, plot.frame)
+    encoded = Makie.lift(encode, validated_frame, plot.encoding)
     values = Makie.lift(item -> item.values, encoded)
     colormap = Makie.lift(
         _resolved_colormap, encoded, plot.colormap,
