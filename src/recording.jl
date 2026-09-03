@@ -72,18 +72,3 @@ function record_potts(filename::AbstractString,
         request::RenderRequest = RenderRequest(), kwargs...)
     return record_potts(filename, renderframes(solution, request); kwargs...)
 end
-
-"""
-Lower-level thin wrapper for recording a caller-owned composition. `update!`
-receives the current item and must atomically publish its own Observables.
-"""
-function record_potts(filename::AbstractString, figure,
-        items; framerate::Real = 30, update!::Function)
-    rate = _validate_framerate(framerate)
-    return _atomic_record(filename) do temporary
-        Makie.record(figure, temporary, items;
-                framerate = rate) do item
-            update!(item)
-        end
-    end
-end

@@ -1,7 +1,7 @@
 function _render_cells(state::Potts.PottsSavedState)
     return [
         RenderCellMetadata(
-            CellIdentity(id, Int(state.cell_generations[id])),
+            RenderCellIdentity(id, Int(state.cell_generations[id])),
             Int(state.cell_kinds[id]),
         )
         for id in eachindex(state.cell_kinds)
@@ -57,18 +57,6 @@ function _project_extent(
     ))
 end
 
-function materialize_channel(
-        ::Potts.PottsSavedState,
-        cells,
-        request::AbstractChannelRequest,
-    )
-    throw(RenderMaterializationError(
-        Potts.PottsSavedState,
-        "saved state does not contain channel $(request.key); request a " *
-        "declared visualization-neutral observation when solving",
-    ))
-end
-
 function _build_renderframe(
         state::Potts.PottsSavedState,
         request::RenderRequest,
@@ -78,10 +66,6 @@ function _build_renderframe(
     spacing = ntuple(_ -> 1.0, ndims(owners))
     projected_owners, geometry =
         _project_extent(owners, spacing, request.extent)
-    isempty(request.channels) || throw(RenderMaterializationError(
-        typeof(state),
-        "saved-state channels must be explicitly materialized before rendering",
-    ))
     metadata = request.include_cell_metadata ? cells : RenderCellMetadata[]
     any(owner -> owner.kind === CellSite, projected_owners) &&
         isempty(metadata) && throw(ArgumentError(

@@ -10,7 +10,7 @@ function allocation_frame(dims = (256, 256); cell_width = 16)
         owners[site] = RenderOwner(CellSite, id)
         id in seen && continue
         push!(seen, id)
-        push!(cells, RenderCellMetadata(CellIdentity(id, 0), mod1(id, 6)))
+        push!(cells, RenderCellMetadata(RenderCellIdentity(id, 0), mod1(id, 6)))
     end
     return PottsRenderFrame(0, owners, cells)
 end

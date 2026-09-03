@@ -1,10 +1,19 @@
+"""
+Abstract supertype for complete Potts render frames with `N` spatial
+dimensions. Downstream implementations conform through the exported accessor
+protocol and [`render_frame_conformance`](@ref).
+"""
 abstract type AbstractPottsRenderFrame{N} end
 
+"""Enumeration describing the semantic owner kind of one lattice site."""
 @enum RenderOwnerKind::UInt8 begin
     CellSite = 0x01
     MediumSite = 0x02
     ObstacleSite = 0x03
 end
+@doc "A lattice site owned by a finite, generation-aware cell." CellSite
+@doc "A mutable lattice site owned by a medium domain." MediumSite
+@doc "An immutable lattice site owned by a medium domain." ObstacleSite
 
 """
 Semantic owner of one rendered lattice site. `id` is a finite-cell ID for
@@ -26,11 +35,11 @@ Base.hash(owner::RenderOwner, seed::UInt) =
     hash(owner.id, hash(owner.kind, seed))
 
 """Generation-aware finite-cell identity."""
-struct CellIdentity
+struct RenderCellIdentity
     id::UInt32
     generation::UInt64
 
-    function CellIdentity(id::Integer, generation::Integer)
+    function RenderCellIdentity(id::Integer, generation::Integer)
         0 < id <= typemax(UInt32) ||
             throw(ArgumentError("cell identity must fit UInt32 and be positive"))
         0 <= generation <= typemax(UInt64) ||
@@ -38,18 +47,18 @@ struct CellIdentity
         new(UInt32(id), UInt64(generation))
     end
 end
-Base.:(==)(left::CellIdentity, right::CellIdentity) =
+Base.:(==)(left::RenderCellIdentity, right::RenderCellIdentity) =
     left.id == right.id && left.generation == right.generation
-Base.hash(identity::CellIdentity, seed::UInt) =
+Base.hash(identity::RenderCellIdentity, seed::UInt) =
     hash(identity.generation, hash(identity.id, seed))
 
 """Semantic metadata for one live finite cell."""
 struct RenderCellMetadata
-    identity::CellIdentity
+    identity::RenderCellIdentity
     cell_type::UInt32
     label::String
 
-    function RenderCellMetadata(identity::CellIdentity, cell_type::Integer;
+    function RenderCellMetadata(identity::RenderCellIdentity, cell_type::Integer;
             label::AbstractString = "Cell $(identity.id)")
         0 < cell_type <= typemax(UInt32) ||
             throw(ArgumentError("cell type must fit UInt32 and be positive"))
@@ -168,11 +177,11 @@ function _frame_errors(mcs, owners, cells, channels, geometry)
                 push!(errors, "cell-channel values must be identity-keyed")
             if item.values isa AbstractDict
                 for identity in keys(item.values)
-                    identity isa CellIdentity ||
-                        push!(errors, "cell-channel keys must be CellIdentity values")
-                    identity isa CellIdentity && !haskey(lookup, identity.id) &&
+                    identity isa RenderCellIdentity ||
+                        push!(errors, "cell-channel keys must be RenderCellIdentity values")
+                    identity isa RenderCellIdentity && !haskey(lookup, identity.id) &&
                         push!(errors, "cell-channel identities must belong to the frame")
-                    identity isa CellIdentity && haskey(lookup, identity.id) &&
+                    identity isa RenderCellIdentity && haskey(lookup, identity.id) &&
                         lookup[identity.id].identity != identity &&
                         push!(errors, "cell-channel identities must match cell generations")
                 end
@@ -219,13 +228,22 @@ function PottsRenderFrame(mcs::Integer, owners::AbstractArray{RenderOwner, N},
         geometry, provenance, lookup)
 end
 
+"""Return the Monte Carlo step represented by a render frame."""
 frame_mcs(frame::PottsRenderFrame) = frame.mcs
+"""Return the spatial dimensions represented by a render frame."""
 frame_size(frame::PottsRenderFrame) = frame.geometry.size
+"""Return the physical [`RenderGeometry`](@ref) of a render frame."""
 frame_geometry(frame::PottsRenderFrame) = frame.geometry
+"""Return the value-like source-lineage record carried by a frame."""
 frame_provenance(frame::PottsRenderFrame) = frame.provenance
+"""Return the semantic [`RenderOwner`](@ref) at `site`."""
 owner_at(frame::PottsRenderFrame, site) = frame.owners[site]
 
-function cell_metadata(frame::PottsRenderFrame, identity::CellIdentity)
+"""
+Return generation-aware metadata for a finite-cell identity or semantic cell
+owner. Downstream frames implement both call forms.
+"""
+function cell_metadata(frame::PottsRenderFrame, identity::RenderCellIdentity)
     index = get(frame.cell_lookup, identity.id, nothing)
     index === nothing && throw(KeyError(identity))
     metadata = frame.cells[index]
@@ -240,8 +258,10 @@ function cell_metadata(frame::PottsRenderFrame, owner::RenderOwner)
     return frame.cells[index]
 end
 
+"""Return the typed keys of all explicitly materialized frame channels."""
 available_channels(frame::PottsRenderFrame) = map(item -> item.key, frame.channels)
 
+"""Return the materialized channel matching `key`, or throw if absent."""
 function channel(frame::PottsRenderFrame, key::RenderChannelKey)
     index = findfirst(item -> item.key == key, frame.channels)
     index === nothing && throw(MissingRenderChannelError(
@@ -372,6 +392,7 @@ function render_frame_conformance(frame::AbstractPottsRenderFrame{N}) where {N}
     return RenderFrameConformance(isempty(issues), unique(issues))
 end
 
+"""Throw `InvalidRenderFrameError` unless the open accessor protocol conforms."""
 function assert_render_frame_conformance(frame::AbstractPottsRenderFrame)
     report = render_frame_conformance(frame)
     report.valid || throw(InvalidRenderFrameError(report.issues))

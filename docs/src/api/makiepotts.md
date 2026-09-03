@@ -9,22 +9,27 @@ implicitly synchronizes a device, or reconstructs an unsaved channel.
 | Materialize frames | `RenderRequest`, `renderframe`, `renderframes`, `PottsRenderFrame` |
 | Select geometry | `FullDomain`, `OrthogonalSlice` |
 | Represent retained channels | `RenderChannel`, `SiteChannelKey`, `CellChannelKey`, `MediumChannelKey` |
-| Extend source-specific channel materialization | `CellPropertyRequest`, `materialize_channel` |
 | Encode | `CellTypeEncoding`, `CellIdentityEncoding`, `ChannelEncoding` |
 | Plot | `pottsplot`, `pottsplot!`, `pottsboundaries!`, `pottsvolume!`, `potts_legend` |
 | Record | `record_potts` |
 
-The stable boundary is the immutable render frame, not a CorePotts runtime
-object. `PottsExplorer`, `explore_potts`, `RerunController`, `reexecute!`, and
-the rerun-state accessors are exported experimental interfaces: they may change
-within the pre-1.0 series and are not covered by the stable render-frame
-contract.
+The stable boundary is the immutable render frame, not a Potts runtime object.
+`PottsExplorer` and `explore_potts` are exported experimental
+interfaces: they may change within the pre-1.0 series and are not covered by
+the stable render-frame contract.
 
 The native `PottsSavedState` adapter materializes ownership and cell metadata
-only. It rejects nonempty channel requests because a saved state does not carry
-arbitrary retained observations. `materialize_channel` is the open protocol for
-a source integration that owns such data; it is not an implicit reconstruction
-mechanism for native saved states.
+only. A saved state does not carry arbitrary retained observations. Source
+integrations supply those values explicitly as `RenderChannel` values when
+constructing a `PottsRenderFrame`.
+
+```text
+saved state → validated frame → semantic encoding → Makie plot or recording
+```
+
+Validation occurs at frame construction and again through the open accessor
+protocol before rendering. Plot recipes consume only that protocol; they do not
+reach back into simulation state.
 
 ```@example makie_boundary
 using MakiePotts

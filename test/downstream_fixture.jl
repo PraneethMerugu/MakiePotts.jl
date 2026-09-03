@@ -3,7 +3,7 @@ module DownstreamFixture
 using MakiePotts
 import MakiePotts: available_channels, cell_metadata, channel, encode
 import MakiePotts: encoding_kind, encoding_label, frame_geometry, frame_mcs
-import MakiePotts: frame_provenance, frame_size, materialize_channel
+import MakiePotts: frame_provenance, frame_size
 import MakiePotts: owner_at, required_channels
 
 const SIGNAL_KEY = SiteChannelKey(:foreign_signal, Float64)
@@ -17,7 +17,7 @@ struct ColumnarFrame <: AbstractPottsRenderFrame{2}
     shape::NTuple{2, Int}
     spatial::RenderGeometry{2, Float64}
     site_records::Dict{CartesianIndex{2}, RenderOwner}
-    identity_records::Dict{CellIdentity, RenderCellMetadata}
+    identity_records::Dict{RenderCellIdentity, RenderCellMetadata}
     owner_records::Dict{UInt32, RenderCellMetadata}
     stream_records::Dict{Any, Any}
     lineage::RenderProvenance
@@ -27,7 +27,7 @@ frame_mcs(frame::ColumnarFrame) = frame.stamp
 frame_size(frame::ColumnarFrame) = frame.shape
 frame_geometry(frame::ColumnarFrame) = frame.spatial
 owner_at(frame::ColumnarFrame, site) = frame.site_records[site]
-cell_metadata(frame::ColumnarFrame, identity::CellIdentity) =
+cell_metadata(frame::ColumnarFrame, identity::RenderCellIdentity) =
     frame.identity_records[identity]
 cell_metadata(frame::ColumnarFrame, owner::RenderOwner) =
     frame.owner_records[owner.id]
@@ -39,8 +39,8 @@ function columnar_frame(phase::Integer = 0)
     shape = (4, 3)
     spatial = RenderGeometry(shape;
         spacing = (0.75, 1.25), origin = (-1.5, 2.0))
-    first_identity = CellIdentity(11, 4)
-    second_identity = CellIdentity(29, 8)
+    first_identity = RenderCellIdentity(11, 4)
+    second_identity = RenderCellIdentity(29, 8)
     first_metadata = RenderCellMetadata(first_identity, 2; label = "Alpha")
     second_metadata = RenderCellMetadata(second_identity, 5; label = "Beta")
     owners = RenderOwner[
@@ -74,12 +74,6 @@ function columnar_frame(phase::Integer = 0)
     return ColumnarFrame(Int(phase), shape, spatial, site_records,
         identity_records, owner_records, stream_records, lineage)
 end
-
-"""Custom request supplied by a downstream package."""
-struct CheckerboardRequest <: AbstractChannelRequest
-    key::typeof(SIGNAL_KEY)
-end
-CheckerboardRequest() = CheckerboardRequest(SIGNAL_KEY)
 
 """Custom continuous encoding supplied by a downstream package."""
 struct RootSignalEncoding <: AbstractPottsEncoding

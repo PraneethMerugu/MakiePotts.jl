@@ -5,7 +5,7 @@ function visual_reference_frame()
     dims = (32, 20)
     owners = fill(RenderOwner(MediumSite, 1), dims)
     cells = RenderCellMetadata[]
-    values = Dict{CellIdentity, Union{Missing, Float64}}()
+    values = Dict{RenderCellIdentity, Union{Missing, Float64}}()
     specifications = (
         (1, (8, 7), (6, 5), 1, 0.18),
         (2, (20, 7), (7, 5), 2, 0.47),
@@ -13,7 +13,7 @@ function visual_reference_frame()
         (4, (24, 15), (6, 4), 3, 0.86),
     )
     for (id, (cx, cy), (rx, ry), cell_type, value) in specifications
-        identity = CellIdentity(id, id == 3 ? 2 : 0)
+        identity = RenderCellIdentity(id, id == 3 ? 2 : 0)
         push!(cells, RenderCellMetadata(identity, cell_type))
         values[identity] = value
         for site in CartesianIndices(owners)

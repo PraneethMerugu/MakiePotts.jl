@@ -1,9 +1,13 @@
+"""Abstract supertype for semantic frame encodings consumed by Makie recipes."""
 abstract type AbstractPottsEncoding end
 
+"""Whether an encoding produces categorical or continuous values."""
 @enum EncodingKind::UInt8 begin
     CategoricalEncoding = 0x01
     ContinuousEncoding = 0x02
 end
+@doc "The encoding produces semantic categories and a discrete legend." CategoricalEncoding
+@doc "The encoding produces numeric values suitable for a Makie `Colorbar`." ContinuousEncoding
 
 """Encode finite cells by biological cell type; this is the default."""
 struct CellTypeEncoding <: AbstractPottsEncoding
@@ -28,10 +32,13 @@ function ChannelEncoding(key::RenderChannelKey; label = nothing)
     return ChannelEncoding(key, label === nothing ? nothing : String(label))
 end
 
+"""Return whether an encoding is categorical or continuous."""
 encoding_kind(::Union{CellTypeEncoding, CellIdentityEncoding}) = CategoricalEncoding
 encoding_kind(::ChannelEncoding) = ContinuousEncoding
+"""Return the typed channels that must be present for an encoding."""
 required_channels(::Union{CellTypeEncoding, CellIdentityEncoding}) = ()
 required_channels(encoding::ChannelEncoding) = (encoding.key,)
+"""Return the human-readable label of an encoding."""
 encoding_label(encoding::Union{CellTypeEncoding, CellIdentityEncoding}) = encoding.label
 encoding_label(encoding::ChannelEncoding) =
     encoding.label === nothing ? String(encoding.key.name) : encoding.label
@@ -61,6 +68,7 @@ function _cell_identity(frame, owner::RenderOwner)
     return metadata.identity
 end
 
+"""Materialize semantic numeric values and legend metadata from a render frame."""
 function encode(frame::AbstractPottsRenderFrame, encoding::CellTypeEncoding)
     type_ids = UInt32[]
     for site in CartesianIndices(frame_size(frame))
@@ -86,7 +94,7 @@ function encode(frame::AbstractPottsRenderFrame, encoding::CellTypeEncoding)
 end
 
 function encode(frame::AbstractPottsRenderFrame, encoding::CellIdentityEncoding)
-    identities = CellIdentity[]
+    identities = RenderCellIdentity[]
     for site in CartesianIndices(frame_size(frame))
         owner = owner_at(frame, site)
         owner.kind === CellSite || continue
@@ -149,6 +157,7 @@ function encode(frame::AbstractPottsRenderFrame, encoding::ChannelEncoding)
         label, item.units, _finite_range(values))
 end
 
+"""Return a copy of the semantic legend entries produced by an encoding."""
 legend_entries(encoded::EncodedPottsFrame) = copy(encoded.categories)
 legend_entries(frame::AbstractPottsRenderFrame, encoding::AbstractPottsEncoding) =
     legend_entries(encode(frame, encoding))
