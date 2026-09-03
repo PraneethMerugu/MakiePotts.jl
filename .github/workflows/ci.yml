@@ -6,15 +6,21 @@ on:
   pull_request:
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 env:
   JULIA_VERSION: '1.12.6'
-  LOCALMATH_REF: 'ba65753b95578ab43993963a0c5c0130ed727a06'
-  COREPOTTS_REF: 'cf5e729022ea11f77b26ffbcb0ef97c47517024c'
-  POTTS_REF: 'a958e3f516841183a79963cd1dc75fab82d5dd64'
+  LOCALMATH_REF: 'main'
+  COREPOTTS_REF: 'main'
+  POTTS_REF: 'main'
 
 jobs:
-  test:
+  package:
+    name: package
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v6
       - uses: actions/checkout@v6
@@ -26,9 +32,25 @@ jobs:
       - uses: julia-actions/setup-julia@v3
         with: {version: '${{ env.JULIA_VERSION }}'}
       - uses: julia-actions/cache@v3
-      - name: Package tests
+      - name: Test package
         run: julia --startup-file=no -e 'using Pkg; Pkg.activate(; temp=true); Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.test("MakiePotts")'
-      - name: Rendering backend environment
+
+  render:
+    name: render
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/LocalMath.jl, ref: '${{ env.LOCALMATH_REF }}', path: deps/LocalMath}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/CorePotts.jl, ref: '${{ env.COREPOTTS_REF }}', path: deps/CorePotts}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/Potts.jl, ref: '${{ env.POTTS_REF }}', path: deps/Potts}
+      - uses: julia-actions/setup-julia@v3
+        with: {version: '${{ env.JULIA_VERSION }}'}
+      - uses: julia-actions/cache@v3
+      - name: Prepare rendering backend environment
         run: xvfb-run -a julia --project=test/backends --startup-file=no -e 'using Pkg; Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.instantiate(); Pkg.precompile()'
       - name: CairoMakie backend and clean-install journey
         run: |
@@ -40,7 +62,44 @@ jobs:
         run: xvfb-run -a julia --project=test/backends --startup-file=no test/backends/gl.jl
       - name: Visual regression
         run: julia --project=test/backends --startup-file=no test/visual_regression.jl
+
+  user-facing:
+    name: user-facing
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/LocalMath.jl, ref: '${{ env.LOCALMATH_REF }}', path: deps/LocalMath}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/CorePotts.jl, ref: '${{ env.COREPOTTS_REF }}', path: deps/CorePotts}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/Potts.jl, ref: '${{ env.POTTS_REF }}', path: deps/Potts}
+      - uses: julia-actions/setup-julia@v3
+        with: {version: '${{ env.JULIA_VERSION }}'}
+      - uses: julia-actions/cache@v3
       - name: Native recipe example
         run: xvfb-run -a julia --project=examples --startup-file=no -e 'using Pkg; Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.instantiate(); include("examples/native_recipe.jl")'
-      - name: Documentation
+      - name: Documentation and doctests
+        if: ${{ !cancelled() }}
         run: julia --project=docs --startup-file=no -e 'using Pkg; Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.instantiate(); include("docs/make.jl")'
+
+  macos-smoke:
+    name: macos-smoke
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/LocalMath.jl, ref: '${{ env.LOCALMATH_REF }}', path: deps/LocalMath}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/CorePotts.jl, ref: '${{ env.COREPOTTS_REF }}', path: deps/CorePotts}
+      - uses: actions/checkout@v6
+        with: {repository: PraneethMerugu/Potts.jl, ref: '${{ env.POTTS_REF }}', path: deps/Potts}
+      - uses: julia-actions/setup-julia@v3
+        with: {version: '${{ env.JULIA_VERSION }}'}
+      - uses: julia-actions/cache@v3
+      - name: Prepare rendering backend environment
+        run: julia --project=test/backends --startup-file=no -e 'using Pkg; Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.instantiate()'
+      - name: Test CairoMakie backend
+        run: julia --project=test/backends --startup-file=no test/backends/cairo.jl
