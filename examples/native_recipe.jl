@@ -11,7 +11,7 @@ for (id, center, radius, cell_type) in (
         (1, (20, 18), (13, 10), 1),
         (2, (43, 18), (14, 11), 2),
         (3, (31, 34), (15, 10), 3))
-    identity = CellIdentity(id, 0)
+    identity = RenderCellIdentity(id, 0)
     push!(cells, RenderCellMetadata(identity, cell_type))
     cx, cy = center
     rx, ry = radius

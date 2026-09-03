@@ -19,7 +19,7 @@ potts_legend(fig[1, 2], plot)
 The stable API centers on:
 
 - validated `PottsRenderFrame` snapshots that defensively own their inputs;
-- data-only `RenderRequest` values and typed render channels;
+- data-only spatial `RenderRequest` values and explicit typed render channels;
 - open encoding and frame-accessor protocols;
 - `PottsPlot` for 2D domains and orthogonal 3D slices;
 - normal Makie composition, themes, `Observable`s, `DataInspector`, `Legend`,
@@ -32,15 +32,15 @@ reconstructs an observation that was not retained. Native
 cell, or medium data has been retained by the simulation. A nonempty channel
 request against a plain saved state is rejected rather than guessed.
 
-`PottsVolume`, `PottsExplorer`, and `RerunController` are experimental. The
+`PottsVolume` and `PottsExplorer` are experimental. The
 frame, request, channel, encoding, 2D recipe, boundary, inspection, and limited
 recording contracts are release-candidate behavior for the v0.3 line.
 
 `record_potts` validates inputs and replaces its destination only after a
-successful temporary recording. Experimental explorers and rerun controllers
-are explicitly closable with `close`.
+successful temporary recording. Experimental explorers are explicitly closable
+with `close`.
 
 The ordinary package and backend tests exercise an unrelated downstream frame
-implementation, custom request and encoding extensions,
+implementation and custom encoding extensions,
 CairoMakie/GLMakie/WGLMakie, tolerant visual regression, allocation
 measurements, strict documentation, and a clean install-to-PNG workflow.

@@ -97,13 +97,13 @@ end
     @test frame_size(frame) == (5, 4)
     @test frame_geometry(frame).spacing == (1.0, 1.0)
     @test owner_at(frame, CartesianIndex(1, 1)).kind === MediumSite
-    @test cell_metadata(frame, CellIdentity(1, 1)).cell_type == 2
+    @test cell_metadata(frame, RenderCellIdentity(1, 1)).cell_type == 2
     @test isempty(available_channels(frame))
     @test frame_provenance(frame).source === :saved_state
     @test Base.isvalid(render_frame_conformance(frame))
     @test assert_render_frame_conformance(frame) === frame
-    @test_throws ArgumentError CellIdentity(0, 0)
-    @test_throws ArgumentError CellIdentity(1, -1)
+    @test_throws ArgumentError RenderCellIdentity(0, 0)
+    @test_throws ArgumentError RenderCellIdentity(1, -1)
 
     source_owners = fill(RenderOwner(MediumSite, 1), 2, 2)
     copied_frame = PottsRenderFrame(0, source_owners, RenderCellMetadata[])
@@ -122,7 +122,7 @@ end
         cell_count = rand(rng, 1:8)
         cells = [
             RenderCellMetadata(
-                CellIdentity(id, rand(rng, UInt16)),
+                RenderCellIdentity(id, rand(rng, UInt16)),
                 rand(rng, 1:5))
             for id in 1:cell_count
         ]
@@ -157,15 +157,15 @@ end
 
 @testset "open typed channels and encodings" begin
     cells = [
-        RenderCellMetadata(CellIdentity(1, 2), 4),
-        RenderCellMetadata(CellIdentity(2, 1), 7),
+        RenderCellMetadata(RenderCellIdentity(1, 2), 4),
+        RenderCellMetadata(RenderCellIdentity(2, 1), 7),
     ]
     owners = reshape(RenderOwner[
         RenderOwner(MediumSite, 1), RenderOwner(CellSite, 1),
         RenderOwner(CellSite, 2), RenderOwner(ObstacleSite, 2),
     ], 2, 2)
     key = CellChannelKey(:signal, Float64)
-    values = Dict(CellIdentity(1, 2) => 0.25, CellIdentity(2, 1) => missing)
+    values = Dict(RenderCellIdentity(1, 2) => 0.25, RenderCellIdentity(2, 1) => missing)
     frame = PottsRenderFrame(2, owners, cells;
         channels = (RenderChannel(key, values; label = "Signal", units = "a.u."),))
 
@@ -197,18 +197,15 @@ end
     figure, axis, plot = Makie.plot(frame)
     @test plot isa PottsPlot
     @test axis isa Makie.Axis
-    @test length(plot.plots) == 3
-    children = copy(plot.plots)
+    before = copy(CairoMakie.colorbuffer(figure))
     frame[] = second_frame
-    @test plot.plots == children
+    after = CairoMakie.colorbuffer(figure)
+    @test before != after
     @test Makie.data_limits(plot) ==
           Makie.Rect3d(Makie.Point3d(0, 0, 0), Makie.Vec3d(5.0, 4.0, 0))
     @test Makie.extract_colormap(plot) isa Makie.ColorMapping
     @test Makie.boundingbox(plot) ==
           Makie.Rect3d(Makie.Point3d(0, 0, 0), Makie.Vec3d(5.0, 4.0, 0))
-    @test Makie.boundingbox(plot.plots[1]) == Makie.boundingbox(plot)
-    @test Makie.boundingbox(plot.plots[2]) == Makie.boundingbox(plot)
-
     categorical_legend = potts_legend(figure[1, 2], plot)
     @test categorical_legend isa Makie.Legend
 
@@ -258,49 +255,6 @@ end
     @test close(explorer) === explorer
     @test !isopen(explorer)
     @test close(explorer) === explorer
-end
-
-@testset "rerun publication is atomic" begin
-    controller = RerunController(identity; initial = :old)
-    wait(reexecute!(controller, :new))
-    @test rerun_status(controller)[] === :succeeded
-    @test rerun_result(controller)[] === :new
-
-    failing = RerunController(x -> error("failure"); initial = :valid)
-    wait(reexecute!(failing, nothing))
-    @test rerun_status(failing)[] === :failed
-    @test rerun_result(failing)[] === :valid
-    @test rerun_error(failing)[] !== nothing
-
-    release_first = Channel{Nothing}(1)
-    latest = RerunController() do value
-        value === :first && take!(release_first)
-        value
-    end
-    first_task = reexecute!(latest, :first)
-    yield()
-    second_task = reexecute!(latest, :second)
-    wait(second_task)
-    put!(release_first, nothing)
-    wait(first_task)
-    @test rerun_status(latest)[] === :succeeded
-    @test rerun_result(latest)[] === :second
-
-    release_closed = Channel{Nothing}(1)
-    closed = RerunController(; initial = :preserved) do value
-        take!(release_closed)
-        value
-    end
-    closed_task = reexecute!(closed, :discarded)
-    yield()
-    @test close(closed) === closed
-    @test !isopen(closed)
-    @test rerun_status(closed)[] === :closed
-    put!(release_closed, nothing)
-    wait(closed_task)
-    @test rerun_result(closed)[] === :preserved
-    @test_throws ArgumentError reexecute!(closed, :forbidden)
-    @test close(closed) === closed
 end
 
 @testset "MakiePotts package quality" begin

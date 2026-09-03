@@ -15,3 +15,14 @@ frame_size(frame)
 metadata retained by a native Potts saved state. It does not reconstruct
 unsaved scientific channels. Additional site, cell, or medium data must be
 provided explicitly as `RenderChannel` values when constructing a frame.
+The package has one rendering boundary:
+
+```text
+PottsSavedState → renderframe → PottsRenderFrame → encode → Makie recipe
+                                                    ↓
+                                               record_potts
+```
+
+`PottsRenderFrame` is the canonical visualization value. Saved-state conversion
+is one source adapter; downstream packages may instead implement the documented
+frame accessor protocol without inheriting Potts runtime storage.

@@ -1,17 +1,3 @@
-"""
-Thrown when a render request cannot be satisfied without violating its declared
-materialization or semantic contract.
-"""
-struct RenderMaterializationError <: Exception
-    source_type::Type
-    reason::String
-end
-
-function Base.showerror(io::IO, error::RenderMaterializationError)
-    print(io, "cannot materialize a Potts render frame from ", error.source_type,
-        ": ", error.reason)
-end
-
 """Thrown when a render frame is incomplete or internally inconsistent."""
 struct InvalidRenderFrameError <: Exception
     messages::Vector{String}
@@ -37,5 +23,5 @@ function Base.showerror(io::IO, error::MissingRenderChannelError)
         print(io, "; available channels: ",
             join(map(item -> sprint(show, item), error.available), ", "))
     end
-    print(io, ". Add the channel to RenderRequest before materializing the frame")
+    print(io, ". Construct the frame with an explicit RenderChannel value")
 end

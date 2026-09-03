@@ -10,11 +10,11 @@ function canonical_frame(mcs::Integer)
     dims = (48, 32)
     owners = fill(RenderOwner(MediumSite, 1), dims)
     cells = RenderCellMetadata[
-        RenderCellMetadata(CellIdentity(1, 2), 1; label = "Leader"),
-        RenderCellMetadata(CellIdentity(2, 0), 2; label = "Follower A"),
-        RenderCellMetadata(CellIdentity(3, 4), 3; label = "Follower B"),
-        RenderCellMetadata(CellIdentity(4, 1), 1; label = "Follower C"),
-        RenderCellMetadata(CellIdentity(5, 3), 2; label = "Follower D"),
+        RenderCellMetadata(RenderCellIdentity(1, 2), 1; label = "Leader"),
+        RenderCellMetadata(RenderCellIdentity(2, 0), 2; label = "Follower A"),
+        RenderCellMetadata(RenderCellIdentity(3, 4), 3; label = "Follower B"),
+        RenderCellMetadata(RenderCellIdentity(4, 1), 1; label = "Follower C"),
+        RenderCellMetadata(RenderCellIdentity(5, 3), 2; label = "Follower D"),
     ]
     phase = clamp(Float64(mcs) / 100, 0, 1)
     centers = (
@@ -46,9 +46,9 @@ function downstream_frame()
     spatial = RenderGeometry(shape;
         spacing = (0.6, 0.6), origin = (0.0, -1.0))
     identities = (
-        CellIdentity(11, 4),
-        CellIdentity(29, 8),
-        CellIdentity(47, 1),
+        RenderCellIdentity(11, 4),
+        RenderCellIdentity(29, 8),
+        RenderCellIdentity(47, 1),
     )
     metadata = (
         RenderCellMetadata(identities[1], 2; label = "Alpha"),

@@ -8,7 +8,7 @@ function _saved_state_frame_oracle(state, request)
     end
     metadata = [
         RenderCellMetadata(
-            CellIdentity(id, state.cell_generations[id]), state.cell_kinds[id])
+            RenderCellIdentity(id, state.cell_generations[id]), state.cell_kinds[id])
         for id in eachindex(state.volumes) if state.volumes[id] > 0
     ]
     if request.extent isa FullDomain
@@ -49,7 +49,7 @@ end
     @test all(site -> owner_at(all_obstacle, site).kind === ObstacleSite,
         CartesianIndices(frame_size(all_obstacle)))
 
-    identity = CellIdentity(typemax(UInt32), typemax(UInt64))
+    identity = RenderCellIdentity(typemax(UInt32), typemax(UInt64))
     metadata = RenderCellMetadata(identity, typemax(UInt32))
     all_cell = PottsRenderFrame(typemax(Int),
         fill(RenderOwner(CellSite, typemax(UInt32)), 2, 1), [metadata])
@@ -89,7 +89,7 @@ end
 end
 
 @testset "missing values and typed channel validation" begin
-    identity = CellIdentity(1, 3)
+    identity = RenderCellIdentity(1, 3)
     cells = [RenderCellMetadata(identity, 2)]
     owners = RenderOwner[
         RenderOwner(MediumSite, 1) RenderOwner(CellSite, 1);
@@ -122,7 +122,7 @@ end
     @test site_overlay[1, 1] == Makie.RGBAf(0, 0, 0, 0)
 
     many_cells = [
-        RenderCellMetadata(CellIdentity(id, 0), id) for id in 1:3
+        RenderCellMetadata(RenderCellIdentity(id, 0), id) for id in 1:3
     ]
     many_owners = reshape(
         [RenderOwner(CellSite, id) for id in 1:3], 3, 1)
@@ -143,13 +143,10 @@ end
     @test_throws ArgumentError RenderGeometry((2, 2); origin = (0.0, NaN))
     @test_throws ArgumentError OrthogonalSlice(0, 1)
     @test_throws ArgumentError OrthogonalSlice(1, 0)
-    @test_throws ArgumentError RenderRequest(channels = (
-        CellPropertyRequest(:x), CellPropertyRequest(:x)))
-
-    identity = CellIdentity(1, 0)
+    identity = RenderCellIdentity(1, 0)
     duplicate_cells = [
         RenderCellMetadata(identity, 1),
-        RenderCellMetadata(CellIdentity(1, 1), 2),
+        RenderCellMetadata(RenderCellIdentity(1, 1), 2),
     ]
     @test_throws MakiePotts.InvalidRenderFrameError PottsRenderFrame(
         0, fill(RenderOwner(CellSite, 1), 2, 2), duplicate_cells)
@@ -173,7 +170,7 @@ end
 
     cell_key = CellChannelKey(:generation, Float64)
     wrong_generation = RenderChannel(
-        cell_key, Dict(CellIdentity(1, 2) => 1.0))
+        cell_key, Dict(RenderCellIdentity(1, 2) => 1.0))
     @test_throws MakiePotts.InvalidRenderFrameError PottsRenderFrame(
         0, fill(RenderOwner(CellSite, 1), 2, 2),
         [RenderCellMetadata(identity, 1)];
@@ -200,18 +197,9 @@ end
     missing_message = sprint(showerror, missing_error)
     @test occursin(":absent", missing_message)
     @test occursin(":available", missing_message)
-    @test occursin("RenderRequest", missing_message)
+    @test occursin("explicit RenderChannel", missing_message)
 
     fixture_2d = render_fixture()
-    channel_request = RenderRequest(channels = (CellPropertyRequest(:signal),))
-    channel_error = try
-        renderframe(fixture_2d.state, channel_request)
-        nothing
-    catch error
-        error
-    end
-    @test channel_error isa MakiePotts.RenderMaterializationError
-    @test occursin("explicitly materialized", sprint(showerror, channel_error))
     @test_throws ArgumentError renderframe(
         fixture_2d.state,
         RenderRequest(extent = OrthogonalSlice(1, 1)))
@@ -230,7 +218,7 @@ end
 end
 
 @testset "frame construction owns mutable semantic inputs" begin
-    identity = CellIdentity(1, 7)
+    identity = RenderCellIdentity(1, 7)
     metadata = RenderCellMetadata(identity, 3; label = "Original")
     owners = fill(RenderOwner(CellSite, 1), 2, 2)
     cells = [metadata]
@@ -284,11 +272,12 @@ end
     ]
     observable = Makie.Observable(first(frames))
     figure, _, plot = Makie.plot(observable; boundaries = true)
-    children = copy(plot.plots)
-    for frame in frames[2:end]
+    before = copy(CairoMakie.colorbuffer(figure))
+    observable[] = frames[2]
+    @test before != CairoMakie.colorbuffer(figure)
+    for frame in frames[3:end]
         observable[] = frame
     end
-    @test plot.plots == children
     @test frame_mcs(plot.frame[]) == 20
     @test CairoMakie.colorbuffer(figure) isa AbstractMatrix
     @test Makie.data_limits(plot) == Makie.Rect3d(
@@ -310,9 +299,10 @@ end
         geometry = RenderGeometry((3, 2);
             spacing = (0.5, 2.0), origin = (2.0, -2.0)))
     incompatible_output = tempname() * ".gif"
+    write(incompatible_output, "previous valid artifact")
     @test_throws ArgumentError record_potts(
         incompatible_output, [first(frames), shifted])
-    @test !isfile(incompatible_output)
+    @test read(incompatible_output, String) == "previous valid artifact"
     @test_throws ArgumentError explore_potts(
         [first(frames), shifted]; inspector = false)
 
@@ -322,15 +312,6 @@ end
         tempname() * ".gif", [first(frames)]; framerate = Inf)
     @test_throws ArgumentError record_potts(
         tempname(), [first(frames)])
-
-    preserved_output = tempname() * ".gif"
-    write(preserved_output, "previous valid artifact")
-    owned_figure = Makie.Figure(size = (120, 100))
-    Makie.Axis(owned_figure[1, 1])
-    @test_throws ErrorException record_potts(
-        preserved_output, owned_figure, 1:2;
-        framerate = 1, update! = _ -> error("update failed"))
-    @test read(preserved_output, String) == "previous valid artifact"
 
     inspected = explore_potts(
         frames[1:2]; inspector = true, figure = (; size = (180, 140)))

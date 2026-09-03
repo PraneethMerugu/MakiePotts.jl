@@ -1,3 +1,4 @@
+"""Abstract supertype for full-domain and projected render extents."""
 abstract type AbstractRenderExtent end
 
 """Request the full two- or three-dimensional ownership domain."""
@@ -19,9 +20,13 @@ struct OrthogonalSlice <: AbstractRenderExtent
     end
 end
 
+"""Abstract supertype for the scope carried by a typed render-channel key."""
 abstract type AbstractRenderChannelScope end
+"""Marker scope for values defined independently at every lattice site."""
 struct SiteChannelScope <: AbstractRenderChannelScope end
+"""Marker scope for values keyed by generation-aware finite-cell identity."""
 struct CellChannelScope <: AbstractRenderChannelScope end
+"""Marker scope for values keyed by medium-domain identity."""
 struct MediumChannelScope <: AbstractRenderChannelScope end
 
 """
@@ -34,10 +39,13 @@ end
 
 RenderChannelKey(::S, name::Symbol, ::Type{T}) where {S <: AbstractRenderChannelScope, T} =
     RenderChannelKey{S, T}(name)
+"""Construct a site-scoped [`RenderChannelKey`](@ref)."""
 SiteChannelKey(name::Symbol, ::Type{T} = Any) where {T} =
     RenderChannelKey(SiteChannelScope(), name, T)
+"""Construct a finite-cell-scoped [`RenderChannelKey`](@ref)."""
 CellChannelKey(name::Symbol, ::Type{T} = Any) where {T} =
     RenderChannelKey(CellChannelScope(), name, T)
+"""Construct a medium-domain-scoped [`RenderChannelKey`](@ref)."""
 MediumChannelKey(name::Symbol, ::Type{T} = Any) where {T} =
     RenderChannelKey(MediumChannelScope(), name, T)
 
@@ -65,47 +73,20 @@ function RenderChannel(key::RenderChannelKey, values;
     return RenderChannel(key, values, String(label), normalized_units)
 end
 
-abstract type AbstractChannelRequest end
-
 """
-Request one finite-cell property by its stable Potts property key.
-"""
-struct CellPropertyRequest{T} <: AbstractChannelRequest
-    key::RenderChannelKey{CellChannelScope, T}
-    property::Symbol
-    label::String
-    units::Union{Nothing, String}
-end
+    RenderRequest(; extent=FullDomain(), include_cell_metadata=true)
 
-function CellPropertyRequest(property::Symbol, ::Type{T} = Float64;
-        name::Symbol = property, label::AbstractString = String(name),
-        units = nothing) where {T}
-    normalized_units = units === nothing ? nothing : String(units)
-    return CellPropertyRequest(
-        CellChannelKey(name, T), property, String(label), normalized_units)
-end
-
+Select the spatial extent and metadata retained when converting a native Potts
+saved state. Scientific channels are explicit [`RenderChannel`](@ref) values
+on a manually constructed frame; they are never reconstructed from saved
+state.
 """
-    RenderRequest(; extent=FullDomain(), channels=(), include_cell_metadata=true)
-
-Immutable, visualization-free declaration of the data required by a render
-frame. Styling belongs to encodings and Makie attributes.
-"""
-struct RenderRequest{E <: AbstractRenderExtent, C <: Tuple}
+struct RenderRequest{E <: AbstractRenderExtent}
     extent::E
-    channels::C
     include_cell_metadata::Bool
 end
 
 function RenderRequest(; extent::AbstractRenderExtent = FullDomain(),
-        channels::Tuple = (), include_cell_metadata::Bool = true)
-    all(channel -> channel isa AbstractChannelRequest, channels) ||
-        throw(ArgumentError("every requested channel must be an AbstractChannelRequest"))
-    keys = map(channel -> channel.key, channels)
-    length(unique(keys)) == length(keys) ||
-        throw(ArgumentError("requested render-channel keys must be unique"))
-    return RenderRequest(extent, channels, include_cell_metadata)
+        include_cell_metadata::Bool = true)
+    return RenderRequest(extent, include_cell_metadata)
 end
-
-"""Open channel-adapter protocol extended by source integrations."""
-function materialize_channel end

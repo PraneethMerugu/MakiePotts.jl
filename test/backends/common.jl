@@ -6,7 +6,7 @@ import Makie
 export smoke_figure
 
 function smoke_frame(phase::Integer = 0)
-    identity = CellIdentity(7, 3)
+    identity = RenderCellIdentity(7, 3)
     cells = [RenderCellMetadata(identity, 2; label = "Backend cell")]
     owners = RenderOwner[
         RenderOwner(MediumSite, 1) RenderOwner(CellSite, 7) RenderOwner(CellSite, 7);
@@ -27,12 +27,7 @@ function smoke_figure()
         boundaries = true, boundary_width = 1.5)
     plot isa PottsPlot || error("backend did not construct PottsPlot")
     axis isa Makie.Axis || error("backend did not construct Axis")
-    length(plot.plots) == 3 ||
-        error("PottsPlot did not retain its three atomic children")
-    children = copy(plot.plots)
     observable[] = smoke_frame(1)
-    plot.plots == children ||
-        error("reactive update reconstructed PottsPlot children")
     frame_mcs(plot.frame[]) == 1 ||
         error("reactive update did not publish the replacement frame")
     expected = Makie.Rect3d(

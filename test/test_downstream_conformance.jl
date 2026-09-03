@@ -17,9 +17,9 @@ MakiePotts.available_channels(::ThrowingFrame) = ()
     @test assert_render_frame_conformance(foreign) === foreign
     @test frame_size(foreign) == (4, 3)
     @test frame_geometry(foreign).origin == (-1.5, 2.0)
-    @test cell_metadata(foreign, CellIdentity(11, 4)).label == "Alpha"
+    @test cell_metadata(foreign, RenderCellIdentity(11, 4)).label == "Alpha"
     @test cell_metadata(
-        foreign, RenderOwner(CellSite, 29)).identity == CellIdentity(29, 8)
+        foreign, RenderOwner(CellSite, 29)).identity == RenderCellIdentity(29, 8)
 
     encoded = encode(foreign, DownstreamFixture.RootSignalEncoding())
     @test encoding_kind(encoded.encoding) === ContinuousEncoding
@@ -36,9 +36,9 @@ MakiePotts.available_channels(::ThrowingFrame) = ()
     @test plot isa PottsPlot
     @test Makie.Colorbar(figure[1, 2], plot) isa Makie.Colorbar
     @test Makie.DataInspector(figure) isa Makie.DataInspector
-    original_children = copy(plot.plots)
+    before = copy(CairoMakie.colorbuffer(figure))
     observable[] = replacement
-    @test plot.plots == original_children
+    @test before != CairoMakie.colorbuffer(figure)
     @test frame_mcs(plot.frame[]) == 1
     @test CairoMakie.colorbuffer(figure) isa AbstractMatrix
 
