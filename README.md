@@ -29,7 +29,8 @@ The stable API centers on:
 reconstructs an observation that was not retained. Native
 `PottsSavedState` frames contain ownership and cell metadata. Construct a
 `PottsRenderFrame` with explicit `RenderChannel` values when additional site,
-cell, or medium data has been retained by the simulation.
+cell, or medium data has been retained by the simulation. A nonempty channel
+request against a plain saved state is rejected rather than guessed.
 
 `PottsVolume` and `PottsExplorer` are experimental. The
 frame, request, channel, encoding, 2D recipe, boundary, inspection, and limited
