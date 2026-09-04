@@ -36,7 +36,7 @@ jobs:
         with: {version: '${{ env.JULIA_VERSION }}'}
       - uses: julia-actions/cache@v3
       - name: Test package
-        run: julia --startup-file=no -e 'using Pkg; Pkg.activate(; temp=true); Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.test("MakiePotts")'
+        run: julia --startup-file=no -e 'using Pkg; Pkg.activate(; temp=true); Pkg.add(PackageSpec(name="AMD", version="0.5.3")); Pkg.develop([PackageSpec(path=path) for path in ("deps/LocalMath", "deps/CorePotts", "deps/Potts", ".")]); Pkg.test("MakiePotts")'
 
   render:
     name: render
