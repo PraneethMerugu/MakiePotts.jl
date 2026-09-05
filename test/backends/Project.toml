@@ -1,4 +1,5 @@
 [deps]
+AMD = "14f7f29c-3bd6-536c-9a0b-7339e30b5a3e"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
 CorePotts = "047998c1-3edd-4edf-b561-cee99549c5a6"
 FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
@@ -10,6 +11,7 @@ Potts = "e4c62a4c-8889-4cc8-ad3a-75efc86c53b9"
 WGLMakie = "276b4fcb-3e11-5398-bf8b-a0c2d153d008"
 
 [compat]
+AMD = "=0.5.3"
 CairoMakie = "0.15"
 CorePotts = "0.2"
 GLMakie = "0.13"
