@@ -163,10 +163,13 @@ function _frame_errors(mcs, owners, cells, channels, geometry)
             push!(errors, "every finite owner must have generation-aware metadata")
     end
 
-    channel_keys = map(item -> item.key, channels)
+    all(item -> item isa RenderChannel, channels) ||
+        push!(errors, "channels must be RenderChannel values")
+    valid_channels = filter(item -> item isa RenderChannel, channels)
+    channel_keys = map(item -> item.key, valid_channels)
     length(unique(channel_keys)) == length(channel_keys) ||
         push!(errors, "render channel keys must be unique")
-    for item in channels
+    for item in valid_channels
         if item.key isa RenderChannelKey{SiteChannelScope}
             item.values isa AbstractArray ||
                 push!(errors, "site-channel values must be an array")

@@ -1,7 +1,7 @@
 name = "MakiePotts"
 uuid = "95794c00-c762-4965-bf31-de18bcca2bc9"
 authors = ["PraneethMerugu <merugufam@gmail.com>"]
-version = "0.3.0-rc1"
+version = "0.3.0-rc2"
 
 [deps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
