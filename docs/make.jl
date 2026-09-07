@@ -13,5 +13,9 @@ makedocs(
     format = Documenter.HTML(
         repolink = "https://github.com/PraneethMerugu/MakiePotts.jl",
     ),
-    pages = ["Home" => "index.md", "API" => "api/makiepotts.md"],
+    pages = [
+        "Home" => "index.md",
+        "Saved-state channels" => "saved_state_channels.md",
+        "API" => "api/makiepotts.md",
+    ],
 )

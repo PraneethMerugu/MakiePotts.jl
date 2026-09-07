@@ -77,9 +77,8 @@ end
     RenderRequest(; extent=FullDomain(), include_cell_metadata=true)
 
 Select the spatial extent and metadata retained when converting a native Potts
-saved state. Scientific channels are explicit [`RenderChannel`](@ref) values
-on a manually constructed frame; they are never reconstructed from saved
-state.
+saved state. Scientific channels are never reconstructed from saved state;
+callers may pass explicit [`RenderChannel`](@ref) values to [`renderframe`](@ref).
 """
 struct RenderRequest{E <: AbstractRenderExtent}
     extent::E

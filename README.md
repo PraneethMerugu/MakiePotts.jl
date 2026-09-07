@@ -26,11 +26,19 @@ The stable API centers on:
   `Colorbar`, `save`, and `record`.
 
 `renderframe` is deliberately explicit. It never transfers backend state or
-reconstructs an observation that was not retained. Native
-`PottsSavedState` frames contain ownership and cell metadata. Construct a
-`PottsRenderFrame` with explicit `RenderChannel` values when additional site,
-cell, or medium data has been retained by the simulation. A nonempty channel
-request against a plain saved state is rejected rather than guessed.
+reconstructs an observation that was not retained. Native `PottsSavedState`
+values contain ownership and cell metadata; retained site, cell, or medium data
+can be attached as typed channels:
+
+```julia
+signal = SiteChannelKey(:signal, Float32)
+frame = renderframe(saved_state;
+    channels = (RenderChannel(signal, retained_signal),))
+```
+
+Site arrays describe the complete saved domain and follow the same full-domain
+or orthogonal-slice projection as ownership. Cell and medium channels remain
+identity-keyed dictionaries. No scientific channel is inferred.
 
 `PottsVolume` and `PottsExplorer` are experimental. The
 frame, request, channel, encoding, 2D recipe, boundary, inspection, and limited

@@ -15,6 +15,7 @@ const MAKIEPOTTS_TEST_FILES = Set((
     "test_adversarial.jl",
     "test_allocations.jl",
     "test_downstream_conformance.jl",
+    "test_saved_state_channels.jl",
 ))
 
 @testset "MakiePotts test inventory" begin
@@ -294,3 +295,4 @@ end
 include("test_downstream_conformance.jl")
 include("test_adversarial.jl")
 include("test_allocations.jl")
+include("test_saved_state_channels.jl")
