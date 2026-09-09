@@ -151,10 +151,17 @@ tests rather than by documentation prose.
 
 ## Continuous integration
 
-Pull requests run the standalone package suite, Cairo/GL/WGL rendering smokes,
-clean-install rendering, visual regression, the native recipe example, and the
-strict documentation build on Julia 1.12.6. The workflow checks out immutable
-audited LocalMath, CorePotts, and Potts revisions and develops them only in CI
-setup; production projects contain no sibling paths. MakiePotts has no device
-execution path or independent GPU capability claim. Benchmarks remain
-diagnostic and are run when their measured rendering path changes.
+Every pull request runs the standalone package suite and strict documentation
+build on Julia 1.12.6. Cairo/GL/WGL backend smokes, clean-install rendering,
+visual regression, the native recipe and macOS rendering run unless the whole
+PR diff consists only of explicitly listed non-executable prose/metadata paths.
+Executable docs, source, tests, examples, dependency/workflow changes and unknown
+paths retain those checks. Main and manual runs exercise the full workflow.
+
+The workflow uses explicit LocalMath, CorePotts and Potts revision defaults;
+manual dispatch can select candidate siblings and every testing job logs the
+actual checkout tuple. Production projects contain no sibling paths and retain
+broad compatibility ranges. An ordinary candidate run is not an exact dependency
+replay claim. MakiePotts has no device execution path or independent GPU
+capability claim. Benchmarks remain diagnostic and run when their measured
+rendering path changes.
