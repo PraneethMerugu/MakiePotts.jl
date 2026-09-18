@@ -165,3 +165,10 @@ broad compatibility ranges. An ordinary candidate run is not an exact dependency
 replay claim. MakiePotts has no device execution path or independent GPU
 capability claim. Benchmarks remain diagnostic and run when their measured
 rendering path changes.
+
+The package job's explicit `AMD` 0.5.3 installation is a CI resolver workaround,
+not a MakiePotts dependency: no package, documentation, example, or test code
+imports it, and it was removed from every declared project. The workflow retains
+the installation until a hosted comparison demonstrates that the complete
+unregistered sibling checkout resolves and tests without it. Phase telemetry
+records the cost while preserving the current qualified dependency selection.

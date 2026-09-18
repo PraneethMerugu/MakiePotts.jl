@@ -8,6 +8,9 @@ import Makie
 import Potts
 using Symbolics
 
+include(joinpath(dirname(@__DIR__), "dev", "ci_telemetry.jl"))
+using .CITelemetry: record_duration
+
 include("downstream_fixture.jl")
 include("allocation_fixture.jl")
 
@@ -242,8 +245,11 @@ end
         RenderCellMetadata[];
         geometry = frame_geometry(first_frame))
     output = tempname() * ".gif"
-    @test record_potts(output, [first_frame, second_frame];
-        framerate = 2, figure = (; size = (180, 140))) == output
+    recorded = record_duration("package.gif_recording"; kind = "recording") do
+        record_potts(output, [first_frame, second_frame];
+            framerate = 2, figure = (; size = (180, 140)))
+    end
+    @test recorded == output
     @test filesize(output) > 1_000
 
     explorer = explore_potts([first_frame, second_frame]; inspector = false,

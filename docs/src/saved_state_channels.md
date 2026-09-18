@@ -76,7 +76,9 @@ frames = map(eachindex(solution)) do index
 end
 
 recording = tempname() * ".gif"
-record_potts(recording, frames; framerate=2, figure=(; size=(240, 180)))
+Main.CITelemetry.record_duration("documentation.gif_recording"; kind="recording") do
+    record_potts(recording, frames; framerate=2, figure=(; size=(240, 180)))
+end
 isfile(recording) && filesize(recording) > 0
 ```
 
