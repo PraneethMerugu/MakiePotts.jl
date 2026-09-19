@@ -1,6 +1,8 @@
 using Documenter
 using MakiePotts
 
+include(joinpath(dirname(@__DIR__), "dev", "ci_telemetry.jl"))
+
 makedocs(
     sitename = "MakiePotts.jl",
     authors = "Praneeth Merugu",
