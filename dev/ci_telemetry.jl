@@ -45,20 +45,6 @@ module CITelemetry
         label, 0.0, "observed"; kind = "observation", detail
     )
 
-    function mark(path)
-        mkpath(dirname(path))
-        write(path, string(time()))
-        return nothing
-    end
-
-    function finish(label, path, detail)
-        started = parse(Float64, read(path, String))
-        return emit_record(
-            label, max(0.0, time() - started), "observed";
-            kind = "transfer", detail,
-        )
-    end
-
     function record_duration(action, label; kind = "phase")
         started = time_ns()
         status = "success"
@@ -81,16 +67,10 @@ module CITelemetry
             end
         elseif length(arguments) == 3 && arguments[1] == "observe"
             return observe(arguments[2], arguments[3])
-        elseif length(arguments) == 2 && arguments[1] == "mark"
-            return mark(arguments[2])
-        elseif length(arguments) == 4 && arguments[1] == "finish"
-            return finish(arguments[2], arguments[3], arguments[4])
         end
         error(
             "usage: julia dev/ci_telemetry.jl measure LABEL -- COMMAND [ARG ...] " *
-                "or julia dev/ci_telemetry.jl observe LABEL DETAIL " *
-                "or julia dev/ci_telemetry.jl mark FILE " *
-                "or julia dev/ci_telemetry.jl finish LABEL FILE DETAIL"
+                "or julia dev/ci_telemetry.jl observe LABEL DETAIL"
         )
     end
 
