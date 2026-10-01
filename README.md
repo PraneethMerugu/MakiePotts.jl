@@ -1,3 +1,8 @@
+> [!IMPORTANT]
+> **This repository is archived.** MakiePotts now lives in the Potts.jl monorepo at
+> [`lib/MakiePotts`](https://github.com/PraneethMerugu/Potts.jl/tree/main/lib/MakiePotts), together with Potts, CorePotts and the other packages.
+> Every earlier branch of this repository is kept as an `archive/*` or `legacy/*` tag.
+
 # MakiePotts
 
 > **Development disclosure:** Substantial portions of this pre-release codebase,
